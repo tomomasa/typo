@@ -83,5 +83,9 @@ class Tag < ActiveRecord::Base
   def to_param
     permalink
   end
+  
+  def add_article(article)
+    self.update_attributes(:articles => self.articles.concat(article))
+  end
 
 end

@@ -77,6 +77,24 @@ class Article < Content
     Article.exists?({:parent_id => self.id})
   end
 
+  def merge_with(other_id)
+    @other_article = Article.find(other_id)
+    self.update_attributes( :body => (self.body.nil? ? "" : self.body) + (@other_article.body.nil? ? "" : @other_article.body) )
+    self.update_attributes( :extended => self.extended + @other_article.extended)
+    @other_article.tags.each do |tag|
+      if !self.tags.include?(tag)
+        tag.add_article(self)
+      end
+    end
+    @other_article.comments.each do |comment|
+      comment.change_article(self)
+    end
+    #@other_article.destroy
+    Article.delete(other_id)
+    self
+    #@main_article.update_attributes
+  end
+
   attr_accessor :draft, :keywords
 
   has_state(:state,
@@ -88,6 +106,7 @@ class Article < Content
                                :post_trigger,
                                :send_pings, :send_notifications,
                                :published_at=, :just_published?])
+
 
   include Article::States
 
@@ -466,4 +485,5 @@ class Article < Content
     to = to - 1 # pull off 1 second so we don't overlap onto the next day
     return from..to
   end
+  
 end

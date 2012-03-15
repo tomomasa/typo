@@ -607,6 +607,28 @@ describe Admin::ContentController do
       end
     end
 
+    describe 'merging action' do
+      
+      it 'should be able to merge' do
+        current_user = @user
+        Admin.stub(:admin?).with(current_user).and_return(true)
+        article = @article
+        other = mock('Article')
+        other.stub(:id).and_return('1')
+        other.stub(:body).and_return('other basic text')
+        other.stub(:extended).and_return('other extended')
+        other.stub(:comments).and_return(['comment 2'])
+        merge = Article.stub(:merging).and_return(true)
+        Article.stub(:merge_with).with(1).and_return(article)
+        other.stub(:delete)
+        article.stub(:body).and_return('basic text' + 'other text')
+        article.stub(:extended).and_return('extended text' + 'other extended text')
+        article.stub(:comments).and_return(['comment 1'] + ['comment 2'])
+        flash = Admin.stub(:set_the_flash).and_return('Merge successful')
+        article
+      end
+      
+    end
   end
 
   describe 'with publisher connection' do
@@ -668,6 +690,24 @@ describe Admin::ContentController do
           response.should redirect_to(:action => 'index')
         end.should_not change(Article, :count)
       end
+
+     describe 'merging action' do
+      
+      it 'should not be able to merge' do
+        current_user = @user
+        Admin.stub(:admin?).with(current_user).and_return(false)
+        article = @article
+        other = mock('Article')
+        other.stub(:id).and_return('1')
+        other.stub(:body).and_return('other basic text')
+        other.stub(:extended).and_return('other extended')
+        other.stub(:comments).and_return(['comment 2'])
+        merge = Article.stub(:merging).and_return(false)
+        flash = Admin.stub(:set_the_flash).and_return('Merge is not possible')
+        article
+      end
+       
+     end
 
     end
   end

@@ -368,6 +368,40 @@ describe Article do
       article.should be_access_by(@alice)
     end
 
+    it 'admin should have the power to merge articles' do 
+      Article.stub(:merge_with).with('1')
+      @article = Article.new(
+        :body => 'basic text',
+        :extended => 'extended text to explain more and more how Typo is      wonderful')
+      other = Article.new(
+        :body => 'other text',
+        :extended => 'other extended text')
+      
+      Article.stub(:find).with('1').and_return(other)
+      Article.stub(:update_attributes)
+      Article.stub(:delete).with('other')
+      @article = Article.new(:body => @article.body + other.body, :extended => @article.extended + other.body) 
+    end
+
+    it 'admin should have the power to merge articles and comments should be merged too' do 
+      Article.stub(:merge_with).with('1')
+      article = mock('Article')
+      article.stub(:body).and_return('basic text')
+      article.stub(:extended).and_return('extended text')
+      article.stub(:comments).and_return(['comment 1'])
+      other = mock('Article')
+      other.stub(:body).and_return('other basic text')
+      other.stub(:extended).and_return('other extended text')
+      other.stub(:comments).and_return(['comment 2'])
+      Article.stub(:find).with('1').and_return(other)
+      Article.stub(:update_attributes)
+      Article.stub(:delete).with('other')
+      Article.stub(:add_comment).with('other.comment')
+      article.stub(:body).and_return('basic text' + 'other text')
+      article.stub(:extended).and_return('extended text' + 'other extended text')
+      article.stub(:comments).and_return(['comment 1'] + ['comment 2'])
+    end
+
   end
 
   describe 'body_and_extended' do

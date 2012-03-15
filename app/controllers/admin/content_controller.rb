@@ -24,6 +24,7 @@ class Admin::ContentController < Admin::BaseController
   end
 
   def new
+    @edit = false;
     new_or_edit
   end
 
@@ -34,6 +35,7 @@ class Admin::ContentController < Admin::BaseController
       flash[:error] = _("Error, you are not allowed to perform this action")
       return
     end
+    @edit = true
     new_or_edit
   end
 
@@ -140,6 +142,7 @@ class Admin::ContentController < Admin::BaseController
   def real_action_for(action); { 'add' => :<<, 'remove' => :delete}[action]; end
 
   def new_or_edit
+    @merge_power = current_user.admin? && @edit; 
     id = params[:id]
     id = params[:article][:id] if params[:article] && params[:article][:id]
     @article = Article.get_or_build_article(id)
@@ -147,7 +150,7 @@ class Admin::ContentController < Admin::BaseController
 
     @post_types = PostType.find(:all)
     if request.post?
-      if params[:article][:draft]
+      if !params[:article].nil? && params[:article][:draft]
         get_fresh_or_existing_draft_for_article
       else
         if not @article.parent_id.nil?
@@ -189,14 +192,42 @@ class Admin::ContentController < Admin::BaseController
   end
 
   def set_the_flash
-    case params[:action]
-    when 'new'
-      flash[:notice] = _('Article was successfully created')
-    when 'edit'
-      flash[:notice] = _('Article was successfully updated.')
+    if params[:merge]
+      @merge_id = params[:merge_id]
+      merging
+      if @success
+        flash[:notice] = _('Articles were successfully merged')
+      else
+        flash[:notice] = _('Articles were NOT merged (Article ID does not exist or same Article ID)')
+      end
     else
-      raise "I don't know how to tidy up action: #{params[:action]}"
+      case params[:action]
+      when 'new'
+        flash[:notice] = _('Article was successfully created')
+      when 'edit'
+        flash[:notice] = _('Article was successfully updated.')
+      else
+        raise "I don't know how to tidy up action: #{params[:action]}"
+      end
+     end
+  end
+
+  def merging
+    if params[:merge_id] == "" || !isInt?(params[:merge_id])
+      @success = false
+    elsif @merge_power
+      @other_article = Article.find_or_initialize_by_id(params[:merge_id])
+      if @other_article.persisted? && params[:merge_id] != params[:id]
+        @article.merge_with(params[:merge_id])
+        @success = true
+      else
+        @success = false
+      end
     end
+  end
+
+  def isInt?(str)
+   return str =~ /^[-+]?[0-9]+$/
   end
 
   def destroy_the_draft
